@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="relative_activity_main_padding">10dp</dimen>
+    <dimen name="relative_activity_main_padding_bottom">20dp</dimen>
+    <dimen name="spinner_select_device_width">150dp</dimen>
+    <dimen name="tv_hint_device_magin_right">10dp</dimen>
+</resources>

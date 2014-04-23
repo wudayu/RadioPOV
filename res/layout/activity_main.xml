@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/relative_activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/darker_gray"
+    android:padding="@dimen/relative_activity_main_padding"
+    android:paddingBottom="@dimen/relative_activity_main_padding_bottom" >
+    <RelativeLayout
+        android:id="@+id/top_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+        <Spinner
+            android:id="@+id/spinner_select_device"
+            android:layout_width="@dimen/spinner_select_device_width"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true" />
+        <TextView
+            android:id="@+id/tv_hint_device"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/tv_hint_device_magin_right"
+            android:layout_toLeftOf="@+id/spinner_select_device"
+            android:text="@string/tv_hint_device" />
+        <TextView
+            android:id="@+id/tv_bluetooth_entrance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="@dimen/tv_hint_device_magin_right"
+            android:layout_toRightOf="@+id/spinner_select_device"
+            android:text="@string/tv_bluetooth_entrance"
+            android:textColor="@color/tv_bluetooth_entrance" />
+    </RelativeLayout>
+    <RelativeLayout
+        android:id="@+id/bottom_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true" >
+        <Button
+            android:id="@+id/btn_select_image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:text="@string/btn_select_image" />
+        <Button
+            android:id="@+id/btn_send_image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:text="@string/btn_send_image" />
+    </RelativeLayout>
+    <ImageView
+        android:id="@+id/img_selected_photo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_layout"
+        android:layout_below="@id/top_layout"
+        android:background="@android:color/transparent"
+        android:contentDescription="@null" />
+</RelativeLayout>

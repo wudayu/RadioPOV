@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
 	 */
 	private static final int SELECT_PICTURE_REQUEST_CODE = 0xF3CE;
 	private static final UUID MY_UUID = UUID
-			.fromString("00001001-0000-1000-8000-00805F9B34FB");//"00001101-0000-1000-8000-00805F9B34FB");
+			.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
 	@ViewById(R.id.top_layout)
 	RelativeLayout topLayout;

@@ -14,13 +14,20 @@ import org.androidannotations.annotations.OnActivityResult;
 import org.androidannotations.annotations.UiThread;
 import org.androidannotations.annotations.ViewById;
 
+import Jama.Matrix;
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.AdapterView;
@@ -40,7 +47,7 @@ public class MainActivity extends Activity {
 
 	private static final int SELECT_PICTURE_REQUEST_CODE = 0xF3CE;
 	private static final UUID MY_UUID_SECURE = UUID
-			.fromString("00001101-0000-1000-8000-00805F9B34FB");
+			.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");//"00001101-0000-1000-8000-00805F9B34FB");
 
 	@ViewById(R.id.top_layout)
 	RelativeLayout topLayout;
@@ -72,7 +79,13 @@ public class MainActivity extends Activity {
 
 	BluetoothAdapter mBluetoothAdapter;
 
+	ProgressDialog progressDialog;
+
+	Handler mHandler;
+
 	int currentDevice = -1;
+
+	int[][][] data;
 
 	@Override
 	protected void onResume() {
@@ -179,6 +192,7 @@ public class MainActivity extends Activity {
 		return uri.getPath();
 	}
 
+	@SuppressLint("HandlerLeak")
 	@Click
 	void btnSendImageClicked() {
 		if (currentDevice < 0 || null == selectedImagePath
@@ -189,28 +203,49 @@ public class MainActivity extends Activity {
 			return;
 		}
 
-		// TODO Complete the send event
-		// Toast.makeText(MainActivity.this, R.string.send_image_success, Toast.LENGTH_SHORT).show();
-		// Toast.makeText(MainActivity.this, R.string.send_image_failure, Toast.LENGTH_SHORT).show();
+		mHandler = new Handler() {
+			public void handleMessage(Message msg) {
+				super.handleMessage(msg);
 
-		new ConnectThread(devices.get(currentDevice)).start();
-		// sendImage(BluetoothDevice device);
+				if (progressDialog != null) {
+					progressDialog.dismiss();
+					progressDialog = null;
+				}
+
+				switch(msg.what) {
+				case 1:
+					Toast.makeText(MainActivity.this, R.string.send_image_success, Toast.LENGTH_SHORT).show();
+					break;
+				default:
+					Toast.makeText(MainActivity.this, R.string.send_image_failure, Toast.LENGTH_SHORT).show();
+					break;
+				}
+				btnSendImage.setClickable(true);
+			}
+		};
+		
+		if (progressDialog == null) {
+			progressDialog = ProgressDialog
+			.show(MainActivity.this,"Sending", "Please wait...");
+			btnSendImage.setClickable(false);
+			new ConnectThread(devices.get(currentDevice)).start();
+		}
 	}
 
 	private class ConnectThread extends Thread {
 	    private final BluetoothSocket mmSocket;
 	    private final BluetoothDevice mmDevice;
-	 
+
 	    public ConnectThread(BluetoothDevice device) {
 	        // Use a temporary object that is later assigned to mmSocket,
 	        // because mmSocket is final
 	        BluetoothSocket tmp = null;
 	        mmDevice = device;
-	 
+
 	        // Get a BluetoothSocket to connect with the given BluetoothDevice
 	        try {
 	            // MY_UUID is the app's UUID string, also used by the server code
-	            tmp = device.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
+	            tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
 	        } catch (IOException e) { }
 	        mmSocket = tmp;
 	    }
@@ -239,13 +274,68 @@ public class MainActivity extends Activity {
 	    	try {
 				OutputStream mmOutStream = socket.getOutputStream();
 				// procedure write into stream
-				mmOutStream.write(null);
+				// mmOutStream.write(null);
+
+				Bitmap originalBitmap = BitmapFactory
+						.decodeFile(selectedImagePath);
+				int width = originalBitmap.getWidth();
+				int height = originalBitmap.getHeight();
+				int halfWidth = width / 2;
+				int halfHeight = height / 2;
+				int[] pix = new int[width * height];
+				originalBitmap.getPixels(pix, 0, width, 0, 0, width, height);
+				Matrix dataR = getDataR(pix, width, height);
+				Matrix dataG = getDataG(pix, width, height);
+				Matrix dataB = getDataB(pix, width, height);
+				int L = Math.min(width, height);
+				
+				double[][] midata = new double[256][];
+				for (int i = 0; i < 256; ++i) {
+					midata[i] = new double[3 * 32];
+					double ang = (i + 1) * Math.PI / 128;
+					for (int j = 0; j < 32; ++j) {
+						double l = L * 0.2 + L * 0.8 / 32 * (j + 1);
+						midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+						midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));;
+						midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));;
+					}
+				}
+				data = new int[256][][];
+				for (int i = 0; i < 256; ++i) {
+					data[i] = new int[16][];
+					for (int j = 0; j < 16; ++j) {
+						data[i][j] = new int[16];
+						double[] temp = { midata[i][16 - j - 1],
+								midata[i][16 - j - 1 + 16], midata[i][16 - j - 1 + 32],
+								midata[i][16 - j - 1 + 48], midata[i][16 - j - 1 + 64],
+								midata[i][16 - j - 1 + 80] };
+						for (int k = 0; k < 16; ++k) {
+							data[i][j][k] = 0;
+							for (int t = 0; t < 6; ++t) {
+								if (temp[t] > (k + 1))
+									data[i][j][k] = (int) (data[i][j][k] + Math.pow(2, t));
+							}
+						}
+					}
+				}
+
+		    	for (int i = 0; i < 256; ++i) {
+		    		for (int j = 0; j < 16; ++j) {
+		    			for (int k = 0; k < 16; ++k) {
+		    				mmOutStream.write(data[i][j][k]);
+		    				mmOutStream.write(',');
+		    			}
+		    		}
+		    		mmOutStream.write('\n');
+		    	}
+		    	mmOutStream.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 				this.cancel();
 			}
-
-	    	// mHandler
+	    	Message message = new Message();
+	    	message.arg1 = 1;
+	    	mHandler.sendMessage(message);
 			this.cancel();
 		}
 
@@ -257,35 +347,63 @@ public class MainActivity extends Activity {
 			}
 		}
 	}
-	/*handler = new Handler() {
-			public void handleMessage(Message msg) {
-				super.handleMessage(msg);
 
-				bindAppsListIntoListView();
+	private Matrix getDataR(int[] pix, int width, int height) {
+		Matrix dataR = new Matrix(width, height, 0.0);
+		// Apply pixel-by-pixel change
+		int index = 0;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int r = ((pix[index] >> 16) & 0xff);
+				dataR.set(x, y, r);
+				index++;
+			} // x
+		} // y
+		return dataR;
+	}
 
-				if (progressDialog != null) {
-					progressDialog.dismiss();
-					progressDialog = null;
-				}
-				chkAllItem.setChecked(false);
-			}
-		};
-		
-		if (progressDialog == null) {
-			initializeExceptionList();
+	private Matrix getDataG(int[] pix, int width, int height) {
+		Matrix dataG = new Matrix(width, height, 0.0);
+		// Apply pixel-by-pixel change
+		int index = 0;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int g = ((pix[index] >> 8) & 0xff);
+				dataG.set(x, y, g);
+				index++;
+			} // x
+		} // y
+		return dataG;
+	}
 
-			progressDialog = ProgressDialog
-			.show(AppsActivity.this,
-					getString(R.string.str_title_refresh_apps_list_activity_apps),
-					getString(R.string.str_content_refresh_apps_list_activity_apps));
+	private Matrix getDataB(int[] pix, int width, int height) {
+		Matrix dataB = new Matrix(width, height, 0.0);
+		// Apply pixel-by-pixel change
+		int index = 0;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int b = (pix[index] & 0xff);
+				dataB.set(x, y, b);
+				index++;
+			} // x
+		} // y
+		return dataB;
+	}
 
-			new Thread() {
-				public void run() {
-					getAppsListWithoutOrder();
-	
-					handler.sendEmptyMessage(0);
-				}
-			}.start();
-		}*/
-
+	private Matrix getDataGray(int[] pix, int width, int height) {
+		Matrix dataGray = new Matrix(width, height, 0.0);
+		// Apply pixel-by-pixel change
+		int index = 0;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int r = ((pix[index] >> 16) & 0xff);
+				int g = ((pix[index] >> 8) & 0xff);
+				int b = (pix[index] & 0xff);
+				int gray = (int) (0.3 * r + 0.59 * g + 0.11 * b);
+				dataGray.set(x, y, gray);
+				index++;
+			} // x
+		} // y
+		return dataGray;
+	}
 }

@@ -1,5 +1,8 @@
 package com.wudayu.radiopov;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -45,9 +48,30 @@ import com.squareup.picasso.Picasso;
 @EActivity(R.layout.activity_main)
 public class MainActivity extends Activity {
 
+	/*
+
+	Name	Value	Size
+	Base UUID Value (Used in promoting 16-bit and 32-bit UUIDs to 128-bit UUIDs)	0x0000000000001000800000805F9B34FB	128-bit
+	SDP	0x0001	16-bit
+	RFCOMM	0x0003	16-bit
+	OBEX	0x0008	16-bit
+	HTTP	0x000C	16-bit
+	L2CAP	0x0100	16-bit
+	BNEP	0x000F	16-bit
+	Serial Port	0x1101	16-bit
+	ServiceDiscoveryServerServiceClassID	0x1000	16-bit
+	BrowseGroupDescriptorServiceClassID	0x1001	16-bit
+	PublicBrowseGroup	0x1002	16-bit
+	OBEX Object Push Profile	0x1105	16-bit
+	OBEX File Transfer Profile	0x1106	16-bit
+	Personal Area Networking User	0x1115	16-bit
+	Network Access Point	0x1116	16-bit
+	Group Network	0x1117	16-bit
+
+	 */
 	private static final int SELECT_PICTURE_REQUEST_CODE = 0xF3CE;
-	private static final UUID MY_UUID_SECURE = UUID
-			.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");//"00001101-0000-1000-8000-00805F9B34FB");
+	private static final UUID MY_UUID = UUID
+			.fromString("00001001-0000-1000-8000-00805F9B34FB");//"00001101-0000-1000-8000-00805F9B34FB");
 
 	@ViewById(R.id.top_layout)
 	RelativeLayout topLayout;
@@ -203,6 +227,22 @@ public class MainActivity extends Activity {
 			return;
 		}
 
+		/* DEBUG CODE
+		compressImage();
+
+    	for (int i = 0; i < 256; ++i) {
+    		for (int j = 0; j < 16; ++j) {
+    			for (int k = 0; k < 16; ++k) {
+    				System.out.printf("%d", data[i][j][k]);
+    				System.out.printf("%c", 0x2C);
+    				// dos.writeChar(',');
+    			}
+    		}
+			System.out.printf("%c", 0x0A);
+			// dos.writeChar('\n');
+    	}
+		*/
+
 		mHandler = new Handler() {
 			public void handleMessage(Message msg) {
 				super.handleMessage(msg);
@@ -245,7 +285,7 @@ public class MainActivity extends Activity {
 	        // Get a BluetoothSocket to connect with the given BluetoothDevice
 	        try {
 	            // MY_UUID is the app's UUID string, also used by the server code
-	            tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
+	            tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID);
 	        } catch (IOException e) { }
 	        mmSocket = tmp;
 	    }
@@ -273,60 +313,20 @@ public class MainActivity extends Activity {
 	    private void manageConnectedSocket(BluetoothSocket socket) {
 	    	try {
 				OutputStream mmOutStream = socket.getOutputStream();
-				// procedure write into stream
-				// mmOutStream.write(null);
 
-				Bitmap originalBitmap = BitmapFactory
-						.decodeFile(selectedImagePath);
-				int width = originalBitmap.getWidth();
-				int height = originalBitmap.getHeight();
-				int halfWidth = width / 2;
-				int halfHeight = height / 2;
-				int[] pix = new int[width * height];
-				originalBitmap.getPixels(pix, 0, width, 0, 0, width, height);
-				Matrix dataR = getDataR(pix, width, height);
-				Matrix dataG = getDataG(pix, width, height);
-				Matrix dataB = getDataB(pix, width, height);
-				int L = Math.min(width, height);
-				
-				double[][] midata = new double[256][];
-				for (int i = 0; i < 256; ++i) {
-					midata[i] = new double[3 * 32];
-					double ang = (i + 1) * Math.PI / 128;
-					for (int j = 0; j < 32; ++j) {
-						double l = L * 0.2 + L * 0.8 / 32 * (j + 1);
-						midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
-						midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));;
-						midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));;
-					}
-				}
-				data = new int[256][][];
-				for (int i = 0; i < 256; ++i) {
-					data[i] = new int[16][];
-					for (int j = 0; j < 16; ++j) {
-						data[i][j] = new int[16];
-						double[] temp = { midata[i][16 - j - 1],
-								midata[i][16 - j - 1 + 16], midata[i][16 - j - 1 + 32],
-								midata[i][16 - j - 1 + 48], midata[i][16 - j - 1 + 64],
-								midata[i][16 - j - 1 + 80] };
-						for (int k = 0; k < 16; ++k) {
-							data[i][j][k] = 0;
-							for (int t = 0; t < 6; ++t) {
-								if (temp[t] > (k + 1))
-									data[i][j][k] = (int) (data[i][j][k] + Math.pow(2, t));
-							}
-						}
-					}
-				}
+				compressImage();
 
+				DataOutputStream dos = new DataOutputStream(mmOutStream);
 		    	for (int i = 0; i < 256; ++i) {
 		    		for (int j = 0; j < 16; ++j) {
 		    			for (int k = 0; k < 16; ++k) {
-		    				mmOutStream.write(data[i][j][k]);
-		    				mmOutStream.write(',');
+		    				dos.writeShort(data[i][j][k]);
+		    				dos.writeChar(0x2C);
+		    				// dos.writeChar(',');
 		    			}
 		    		}
-		    		mmOutStream.write('\n');
+    				dos.writeChar(0x0A);
+    				// dos.writeChar('\n');
 		    	}
 		    	mmOutStream.close();
 			} catch (IOException e) {
@@ -344,6 +344,51 @@ public class MainActivity extends Activity {
 			try {
 				mmSocket.close();
 			} catch (IOException e) {
+			}
+		}
+	}
+
+	private void compressImage() {
+		Bitmap originalBitmap = BitmapFactory
+				.decodeFile(selectedImagePath);
+		int width = originalBitmap.getWidth();
+		int height = originalBitmap.getHeight();
+		int halfWidth = width / 2;
+		int halfHeight = height / 2;
+		int[] pix = new int[width * height];
+		originalBitmap.getPixels(pix, 0, width, 0, 0, width, height);
+		Matrix dataR = getDataR(pix, width, height).times(1.0 / 16);
+		Matrix dataG = getDataG(pix, width, height).times(1.0 / 16);
+		Matrix dataB = getDataB(pix, width, height).times(1.0 / 16);
+		int L = Math.min(halfWidth, halfHeight);
+		
+		double[][] midata = new double[256][];
+		for (int i = 0; i < 256; ++i) {
+			midata[i] = new double[3 * 32];
+			double ang = (i + 1) * Math.PI / 128;
+			for (int j = 0; j < 32; ++j) {
+				double l = L * 0.2 + L * 0.8 / 32 * (j + 1);
+				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+			}
+		}
+		data = new int[256][][];
+		for (int i = 0; i < 256; ++i) {
+			data[i] = new int[16][];
+			for (int j = 0; j < 16; ++j) {
+				data[i][j] = new int[16];
+				double[] temp = { midata[i][16 - j - 1],
+						midata[i][16 - j - 1 + 16], midata[i][16 - j - 1 + 32],
+						midata[i][16 - j - 1 + 48], midata[i][16 - j - 1 + 64],
+						midata[i][16 - j - 1 + 80] };
+				for (int k = 0; k < 16; ++k) {
+					data[i][j][k] = 0;
+					for (int t = 0; t < 6; ++t) {
+						if (temp[t] > (k + 1))
+							data[i][j][k] = (int) (data[i][j][k] + Math.pow(2, t));
+					}
+				}
 			}
 		}
 	}

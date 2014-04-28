@@ -1,8 +1,6 @@
 package com.wudayu.radiopov;
 
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -435,6 +433,7 @@ public class MainActivity extends Activity {
 		return dataB;
 	}
 
+	/*
 	private Matrix getDataGray(int[] pix, int width, int height) {
 		Matrix dataGray = new Matrix(width, height, 0.0);
 		// Apply pixel-by-pixel change
@@ -451,4 +450,5 @@ public class MainActivity extends Activity {
 		} // y
 		return dataGray;
 	}
+	*/
 }

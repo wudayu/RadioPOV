@@ -318,12 +318,12 @@ public class MainActivity extends Activity {
 		    	for (int i = 0; i < 256; ++i) {
 		    		for (int j = 0; j < 16; ++j) {
 		    			for (int k = 0; k < 16; ++k) {
-		    				dos.writeShort(data[i][j][k]);
-		    				dos.writeChar(0x2C);
+		    				dos.writeByte(data[i][j][k]);
+		    				// dos.writeChar(0x2C);
 		    				// dos.writeChar(',');
 		    			}
 		    		}
-    				dos.writeChar(0x0A);
+    				// dos.writeChar(0x0A);
     				// dos.writeChar('\n');
 		    	}
 		    	mmOutStream.close();
@@ -355,9 +355,9 @@ public class MainActivity extends Activity {
 		int halfHeight = height / 2;
 		int[] pix = new int[width * height];
 		originalBitmap.getPixels(pix, 0, width, 0, 0, width, height);
-		Matrix dataR = getDataR(pix, width, height).times(1.0 / 16);
-		Matrix dataG = getDataG(pix, width, height).times(1.0 / 16);
 		Matrix dataB = getDataB(pix, width, height).times(1.0 / 16);
+		Matrix dataG = getDataG(pix, width, height).times(1.0 / 16);
+		Matrix dataR = getDataR(pix, width, height).times(1.0 / 16);
 		int L = Math.min(halfWidth, halfHeight);
 		
 		double[][] midata = new double[256][];
@@ -365,7 +365,7 @@ public class MainActivity extends Activity {
 			midata[i] = new double[3 * 32];
 			double ang = (i + 1) * Math.PI / 128;
 			for (int j = 0; j < 32; ++j) {
-				double l = L * 0.2 + L * 0.8 / 32 * (j + 1);
+				double l = L * 0.106 + L * 0.894 / 32 * (j + 1);
 				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
 				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
 				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));

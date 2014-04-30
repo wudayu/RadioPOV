@@ -225,22 +225,22 @@ public class MainActivity extends Activity {
 			return;
 		}
 
-		/* DEBUG CODE
+		
 		compressImage();
-
+		/* DEBUG CODE
     	for (int i = 0; i < 256; ++i) {
     		for (int j = 0; j < 16; ++j) {
     			for (int k = 0; k < 16; ++k) {
-    				System.out.printf("%d", data[i][j][k]);
+    				System.out.printf("%d", data[i][k][j]);
     				System.out.printf("%c", 0x2C);
     				// dos.writeChar(',');
     			}
     		}
 			System.out.printf("%c", 0x0A);
 			// dos.writeChar('\n');
-    	}
-		*/
-
+    	}*/
+		
+		
 		mHandler = new Handler() {
 			public void handleMessage(Message msg) {
 				super.handleMessage(msg);
@@ -318,7 +318,7 @@ public class MainActivity extends Activity {
 		    	for (int i = 0; i < 256; ++i) {
 		    		for (int j = 0; j < 16; ++j) {
 		    			for (int k = 0; k < 16; ++k) {
-		    				dos.writeByte(data[i][j][k]);
+		    				dos.writeByte(data[i][k][j]);
 		    				// dos.writeChar(0x2C);
 		    				// dos.writeChar(',');
 		    			}
@@ -351,21 +351,21 @@ public class MainActivity extends Activity {
 				.decodeFile(selectedImagePath);
 		int width = originalBitmap.getWidth();
 		int height = originalBitmap.getHeight();
-		int halfWidth = width / 2;
-		int halfHeight = height / 2;
+		double halfWidth = width / 2.0d;
+		double halfHeight = height / 2.0d;
 		int[] pix = new int[width * height];
 		originalBitmap.getPixels(pix, 0, width, 0, 0, width, height);
-		Matrix dataB = getDataB(pix, width, height).times(1.0 / 16);
-		Matrix dataG = getDataG(pix, width, height).times(1.0 / 16);
-		Matrix dataR = getDataR(pix, width, height).times(1.0 / 16);
-		int L = Math.min(halfWidth, halfHeight);
+		Matrix dataB = getDataB(pix, width, height).times(1.0d / 16);
+		Matrix dataG = getDataG(pix, width, height).times(1.0d / 16);
+		Matrix dataR = getDataR(pix, width, height).times(1.0d / 16);
+		double L = Math.min(halfWidth, halfHeight);
 		
 		double[][] midata = new double[256][];
 		for (int i = 0; i < 256; ++i) {
 			midata[i] = new double[3 * 32];
-			double ang = (i + 1) * Math.PI / 128;
+			double ang = (i + 1) * Math.PI / 128d;
 			for (int j = 0; j < 32; ++j) {
-				double l = L * 0.106 + L * 0.894 / 32 * (j + 1);
+				double l = L * 0.106d + L * 0.894d / 32d * (j + 1);
 				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
 				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
 				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));

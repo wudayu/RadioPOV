@@ -225,9 +225,9 @@ public class MainActivity extends Activity {
 			return;
 		}
 
-		
-		compressImage();
 		/* DEBUG CODE
+		compressImage();
+		
     	for (int i = 0; i < 256; ++i) {
     		for (int j = 0; j < 16; ++j) {
     			for (int k = 0; k < 16; ++k) {
@@ -235,12 +235,13 @@ public class MainActivity extends Activity {
     				System.out.printf("%c", 0x2C);
     				// dos.writeChar(',');
     			}
+
+    			System.out.printf("%c", 0x0A);
     		}
 			System.out.printf("%c", 0x0A);
 			// dos.writeChar('\n');
     	}*/
-		
-		
+
 		mHandler = new Handler() {
 			public void handleMessage(Message msg) {
 				super.handleMessage(msg);
@@ -250,7 +251,7 @@ public class MainActivity extends Activity {
 					progressDialog = null;
 				}
 
-				switch(msg.what) {
+				switch(msg.arg1) {
 				case 1:
 					Toast.makeText(MainActivity.this, R.string.send_image_success, Toast.LENGTH_SHORT).show();
 					break;
@@ -309,29 +310,38 @@ public class MainActivity extends Activity {
 	    }
 	 
 	    private void manageConnectedSocket(BluetoothSocket socket) {
+	    	Message message = new Message();
+	    	OutputStream mmOutStream = null;
+	    	
+	    	compressImage();
+
 	    	try {
-				OutputStream mmOutStream = socket.getOutputStream();
-
-				compressImage();
-
+				mmOutStream = socket.getOutputStream();
 				DataOutputStream dos = new DataOutputStream(mmOutStream);
 		    	for (int i = 0; i < 256; ++i) {
 		    		for (int j = 0; j < 16; ++j) {
 		    			for (int k = 0; k < 16; ++k) {
 		    				dos.writeByte(data[i][k][j]);
-		    				// dos.writeChar(0x2C);
-		    				// dos.writeChar(',');
 		    			}
 		    		}
-    				// dos.writeChar(0x0A);
-    				// dos.writeChar('\n');
+
+System.out.println("i === " + i);
 		    	}
-		    	mmOutStream.close();
 			} catch (IOException e) {
 				e.printStackTrace();
+				message.arg1 = 0;
+		    	mHandler.sendMessage(message);
 				this.cancel();
+			} finally {
+				try {
+					if (mmOutStream != null)
+						mmOutStream.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
-	    	Message message = new Message();
+	    	
 	    	message.arg1 = 1;
 	    	mHandler.sendMessage(message);
 			this.cancel();
@@ -355,11 +365,10 @@ public class MainActivity extends Activity {
 		double halfHeight = height / 2.0d;
 		int[] pix = new int[width * height];
 		originalBitmap.getPixels(pix, 0, width, 0, 0, width, height);
-		Matrix dataB = getDataB(pix, width, height).times(1.0d / 16);
-		Matrix dataG = getDataG(pix, width, height).times(1.0d / 16);
-		Matrix dataR = getDataR(pix, width, height).times(1.0d / 16);
+		Matrix dataB = getDataB(pix, width, height).times(0.0625d);
+		Matrix dataG = getDataG(pix, width, height).times(0.0625d);
+		Matrix dataR = getDataR(pix, width, height).times(0.0625d);
 		double L = Math.min(halfWidth, halfHeight);
-		
 		double[][] midata = new double[256][];
 		for (int i = 0; i < 256; ++i) {
 			midata[i] = new double[3 * 32];
@@ -391,12 +400,12 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	private Matrix getDataR(int[] pix, int width, int height) {
+	private Matrix getDataB(int[] pix, int width, int height) {
 		Matrix dataR = new Matrix(width, height, 0.0);
 		// Apply pixel-by-pixel change
 		int index = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
 				int r = ((pix[index] >> 16) & 0xff);
 				dataR.set(x, y, r);
 				index++;
@@ -409,8 +418,8 @@ public class MainActivity extends Activity {
 		Matrix dataG = new Matrix(width, height, 0.0);
 		// Apply pixel-by-pixel change
 		int index = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
 				int g = ((pix[index] >> 8) & 0xff);
 				dataG.set(x, y, g);
 				index++;
@@ -419,12 +428,12 @@ public class MainActivity extends Activity {
 		return dataG;
 	}
 
-	private Matrix getDataB(int[] pix, int width, int height) {
+	private Matrix getDataR(int[] pix, int width, int height) {
 		Matrix dataB = new Matrix(width, height, 0.0);
 		// Apply pixel-by-pixel change
 		int index = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
 				int b = (pix[index] & 0xff);
 				dataB.set(x, y, b);
 				index++;

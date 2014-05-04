@@ -8,4 +8,6 @@
     <string name="send_image_success">Send image Success!</string>
     <string name="send_image_failure">Send image Failed</string>
     <string name="device_or_image_required">Choose a device and select an Image</string>
+    <string name="bluetooth_not_enabled">Bluetooth is not enabled</string>
+    <string name="device_not_support_bluetooth">This device is not support bluetooth</string>
 </resources>

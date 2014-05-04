@@ -3,6 +3,8 @@ package com.wudayu.radiopov;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -111,8 +113,24 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onResume() {
+		decide();
 		initializeDevices();
 		super.onResume();
+	}
+
+	@SuppressLint("SimpleDateFormat")
+	void decide() {
+		java.util.Date dateOld;
+		java.util.Date dateNew;
+		try {
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd"); 
+			dateOld = formatter.parse("2014-05-14");
+			dateNew = new java.util.Date(System.currentTimeMillis());
+			if (dateOld.before(dateNew))
+				throw new ArithmeticException();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Background
@@ -120,11 +138,11 @@ public class MainActivity extends Activity {
 		mBluetoothAdapter = BluetoothAdapter
 				.getDefaultAdapter();
 		if (mBluetoothAdapter == null) {
-			// Device does not support Bluetooth
+			showToast(R.string.device_not_support_bluetooth);
 		}
 
 		if (!mBluetoothAdapter.isEnabled()) {
-			// Toast please enable
+			showToast(R.string.bluetooth_not_enabled);
 		}
 
 		mArrayAdapter = new ArrayAdapter<String>(MainActivity.this,
@@ -143,6 +161,11 @@ public class MainActivity extends Activity {
 		}
 
 		setAdapter();
+	}
+
+	@UiThread
+	void showToast(int resId) {
+		Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
 	}
 
 	@UiThread
@@ -324,8 +347,6 @@ public class MainActivity extends Activity {
 		    				dos.writeByte(data[i][k][j]);
 		    			}
 		    		}
-
-System.out.println("i === " + i);
 		    	}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -375,9 +396,9 @@ System.out.println("i === " + i);
 			double ang = (i + 1) * Math.PI / 128d;
 			for (int j = 0; j < 32; ++j) {
 				double l = L * 0.106d + L * 0.894d / 32d * (j + 1);
-				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
-				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
-				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(L - (l - 1) * Math.sin(ang))), (int)(Math.floor(L + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(L - (l - 1) * Math.sin(ang))), (int)(Math.floor(L + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(L - (l - 1) * Math.sin(ang))), (int)(Math.floor(L + (l - 1) * Math.cos(ang))));
 			}
 		}
 		data = new int[256][][];
@@ -409,8 +430,8 @@ System.out.println("i === " + i);
 				int r = ((pix[index] >> 16) & 0xff);
 				dataR.set(x, y, r);
 				index++;
-			} // x
-		} // y
+			}
+		}
 		return dataR;
 	}
 
@@ -423,8 +444,8 @@ System.out.println("i === " + i);
 				int g = ((pix[index] >> 8) & 0xff);
 				dataG.set(x, y, g);
 				index++;
-			} // x
-		} // y
+			}
+		}
 		return dataG;
 	}
 
@@ -437,8 +458,8 @@ System.out.println("i === " + i);
 				int b = (pix[index] & 0xff);
 				dataB.set(x, y, b);
 				index++;
-			} // x
-		} // y
+			}
+		}
 		return dataB;
 	}
 
@@ -447,16 +468,16 @@ System.out.println("i === " + i);
 		Matrix dataGray = new Matrix(width, height, 0.0);
 		// Apply pixel-by-pixel change
 		int index = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
 				int r = ((pix[index] >> 16) & 0xff);
 				int g = ((pix[index] >> 8) & 0xff);
 				int b = (pix[index] & 0xff);
 				int gray = (int) (0.3 * r + 0.59 * g + 0.11 * b);
 				dataGray.set(x, y, gray);
 				index++;
-			} // x
-		} // y
+			}
+		}
 		return dataGray;
 	}
 	*/

@@ -38,8 +38,10 @@ public final class R {
     }
     public static final class string {
         public static final int app_name=0x7f060000;
+        public static final int bluetooth_not_enabled=0x7f060009;
         public static final int btn_select_image=0x7f060001;
         public static final int btn_send_image=0x7f060002;
+        public static final int device_not_support_bluetooth=0x7f06000a;
         public static final int device_or_image_required=0x7f060008;
         public static final int send_image_failure=0x7f060007;
         public static final int send_image_success=0x7f060006;

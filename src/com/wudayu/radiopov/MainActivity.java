@@ -27,7 +27,6 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -44,6 +43,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.RequestCreator;
 
 @EActivity(R.layout.activity_main)
 public class MainActivity extends Activity {
@@ -204,15 +204,42 @@ public class MainActivity extends Activity {
 				SELECT_PICTURE_REQUEST_CODE);
 	}
 
+	RequestCreator creator;
+	Bitmap map = null;
+
 	@OnActivityResult(SELECT_PICTURE_REQUEST_CODE)
 	void onResult(int resultCode, Intent data) {
 		if (resultCode == RESULT_OK) {
 			Uri selectedImageUri = data.getData();
 
 			selectedImagePath = getPath(selectedImageUri);
-			Picasso.with(MainActivity.this).load("file://" + selectedImagePath)
-					.into(imgSelectedPhoto);
+			creator = Picasso.with(MainActivity.this).load("file://" + selectedImagePath);
+			
+			cropTheImage();
 		}
+	}
+
+	@Background
+	void cropTheImage() {
+		try {
+			map = creator.get();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		int min = Math.min(map.getWidth(), map.getHeight());
+		creator = creator.resize(min, min).centerCrop();
+		map.recycle();
+		try {
+			map = creator.get();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		showCropImage();
+	}
+
+	@UiThread
+	void showCropImage() {
+		creator.into(imgSelectedPhoto);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -249,7 +276,7 @@ public class MainActivity extends Activity {
 		}
 
 		/* DEBUG CODE
-		compressImage();
+		compressImage(map);
 		
     	for (int i = 0; i < 256; ++i) {
     		for (int j = 0; j < 16; ++j) {
@@ -336,7 +363,8 @@ public class MainActivity extends Activity {
 	    	Message message = new Message();
 	    	OutputStream mmOutStream = null;
 	    	
-	    	compressImage();
+	    	// compressImage(selectedImagePath);
+	    	compressImage(map);
 
 	    	try {
 				mmOutStream = socket.getOutputStream();
@@ -377,9 +405,15 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	private void compressImage() {
+	/*
+	private void compressImage(String path) {
 		Bitmap originalBitmap = BitmapFactory
-				.decodeFile(selectedImagePath);
+				.decodeFile(path);
+		compressImage(originalBitmap);
+	}
+	*/
+
+	private void compressImage(Bitmap originalBitmap) {
 		int width = originalBitmap.getWidth();
 		int height = originalBitmap.getHeight();
 		double halfWidth = width / 2.0d;
@@ -396,9 +430,9 @@ public class MainActivity extends Activity {
 			double ang = (i + 1) * Math.PI / 128d;
 			for (int j = 0; j < 32; ++j) {
 				double l = L * 0.106d + L * 0.894d / 32d * (j + 1);
-				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(L - (l - 1) * Math.sin(ang))), (int)(Math.floor(L + (l - 1) * Math.cos(ang))));
-				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(L - (l - 1) * Math.sin(ang))), (int)(Math.floor(L + (l - 1) * Math.cos(ang))));
-				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(L - (l - 1) * Math.sin(ang))), (int)(Math.floor(L + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 0] = dataB.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 1] = dataG.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
+				midata[i][j * 3 + 2] = dataR.get((int)(Math.floor(halfWidth - (l - 1) * Math.sin(ang))), (int)(Math.floor(halfHeight + (l - 1) * Math.cos(ang))));
 			}
 		}
 		data = new int[256][][];
